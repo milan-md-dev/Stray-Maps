@@ -1,0 +1,108 @@
+<resources>
+    <string name="app_name">StrayMaps</string>
+    <string name="welcome_sign">Welcome to</string>
+    <string name="initial_photo_description">A small brown dog sleeping curled up on what seems to be playground sand</string>
+
+    // Sign in options
+    <string name="sign_up">Sign up</string>
+    <string name="sign_in">Sign in</string>
+    <string name="continue_as_guest">Continue as guest</string>
+
+    // Sign up and Sign in screens
+    <string name="email">email</string>
+    <string name="password">Password</string>
+    <string name="confirm_password">Confirm password</string>
+    <string name="make_an_account">Don\'t have an account yet?</string>
+    <string name="make_an_account_sign_up">Click here to Sign up.</string>
+
+    // Sign Out
+    <string name="sign_out">Sign out</string>
+    <string name="sign_out_question">Are you sure you want to sign out of StrayMaps?</string>
+
+    // Delete account
+    <string name="delete_account">Delete account</string>
+    <string name="delete_account_question">Are you sure you want to delete your StrayMaps account?</string>
+
+    // Yes and no
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
+
+    // Permissions
+    // Camera
+    <string name="Request_permission">Request permission</string>
+    <string name="camera_permission_granted">Camera permission granted.</string>
+    <string name="camera_permission_denied">Camera permission denied.</string>
+    <string name="Please_grant_camera_permission">The camera is important for this app. Please grant the permission.</string>
+    <string name="Camera_required_for_this_feature">Camera permission required for this feature to work, please grant the permission.</string>
+    // Gallery
+    <string name="media_permission_granted">Media permission granted.</string>
+    <string name="media_permission_denied">Media permission denied.</string>
+    <string name="Please_grant_media_permission">Access to gallery is important for this app. Please grant the permission.</string>
+    <string name="Media_required_for_this_feature">Gallery permission required for this feature to work, please grant the permission.</string>
+
+    // Home screen
+    <string name="home_screen_top_app_bar">StrayMaps</string>
+    <string name="stray_spotter">Report a stray animal</string>
+    <string name="lost_and_found">Report a lost pet</string>
+    <string name="already_filed_reports">See already filed reports</string>
+    <string name="where_to_go">Look for nearby animal shelters and vet clinics</string>
+    <string name="feed_a_stray">Donate money to help feed and house animals without a home</string>
+    <string name="filed_report_selection">Would you like to see filed reports about lost pets, or about stray animals?</string>
+
+    // File a stray animal report
+    <string name="required_fields_stray">Asterisk(*) fields are required, the rest are optional.</string>
+    <string name="file_a_stray_animal_report_top_app_bar_text">File a stray animal report</string>
+    <string name="no_image_available">No image available</string>
+    <string name="please_upload_a_photo">Please upload a photo (if possible)</string>
+    <string name="type_of_animal">*Type of animal (e.g. dog, cat, rabbit...)</string>
+    <string name="animal_colour">*Animal colour</string>
+    <string name="animal_sex">Animal sex (If not sure please leave blank)</string>
+    <string name="animal_appearance">*Please describe in detail what the animal looks like</string>
+    <string name="animal_location">*Animal\'s last known location</string>
+    <string name="animal_microchip">Please enter the microchip id if applicable</string>
+    <string name="animal_contact_information">Please enter the contact person info for this animal (if available).</string>
+    <string name="animal_additional_information">Please enter any additional information here.</string>
+    <string name="error_saving_report">Error occurred while trying to save report.</string>
+    <string name="photo_icon">Photo</string>
+    <string name="photo_alert_dialog_title">Photo</string>
+    <string name="photo_alert_dialog_body">Please pick a photo from your gallery, or take one with camera.</string>
+    <string name="photo_alert_dialog_gallery">Pick from gallery</string>
+    <string name="photo_alert_dialog_camera">Take a photo using camera</string>
+
+    // File a lost pet report
+    <string name="required_fields_pet">Asterisk(*) fields are required, the rest are optional.</string>
+    <string name="file_a_lost_pet_report_top_app_bar_text">File a stray animal report</string>
+    <string name="no_pet_image_available">No image available</string>
+    <string name="please_upload_a_pet_photo">Please upload a photo if possible</string>
+    <string name="pet_name">Please enter pet name</string>
+    <string name="type_of_pet">Type of pet (e.g. dog, cat, rabbit...)</string>
+    <string name="pet_colour">Animal colour</string>
+    <string name="pet_sex">Animal sex</string>
+    <string name="pet_appearance">Please describe in detail what your pet looks like</string>
+    <string name="pet_location">Please describe where you lost the pet.</string>
+    <string name="pet_microchip">Please enter the microchip id of your pet if available.</string>
+
+    // Filed reports screen
+    <string name="filed_reports_screen_top_app_bar">Filed reports</string>
+    <string name="arrow_back">Go back to previous screen</string>
+    <string name="search_icon">Search for a report with specific microchip ID</string>
+    <string name="sort_by">Sort by</string>
+    <string name="microchip_id_text_field">Please enter the microchip id:</string>
+    <string name="empty_list">There are currently no filed reports.</string>
+    <string name="expanded_image">Expanded photo of the reported animal.</string>
+
+    // Maps
+    <string name="location_permissions_granted">Thanks for letting me access your location.</string>
+    <string name="coarse_location_only">Thanks for letting me access your approximate location
+        but the results would be better if you allowed me to access your exact location.
+        </string>
+    <string name="both_location_permissions_denied">Knowing your exact location is important for using maps precisely
+        in this application, please grant us fine location, thank you.
+        </string>
+    <string name="feature_requires_location">This feature requires location permission.</string>
+    <string name="allow_precise_location">Allow precise location.</string>
+    <string name="request_permissions">Request permissions.</string>
+
+    // Misc
+    <string name="anonymous_account_message">You are currently using StrayMaps as a guest.</string>
+</resources>
