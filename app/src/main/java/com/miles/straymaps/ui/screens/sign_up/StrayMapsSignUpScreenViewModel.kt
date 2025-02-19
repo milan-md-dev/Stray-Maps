@@ -11,7 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import javax.inject.Inject
 
 @HiltViewModel
-class StrayMapsSignUpScreenViewModel @Inject constructor(
+open class StrayMapsSignUpScreenViewModel @Inject constructor(
     private val accountService: AccountServiceInterface
 ) : StrayMapsViewModel() {
 

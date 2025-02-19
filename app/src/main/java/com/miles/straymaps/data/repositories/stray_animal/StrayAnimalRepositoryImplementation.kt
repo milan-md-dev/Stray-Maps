@@ -10,6 +10,7 @@ import android.os.Build
 import android.util.Log
 import com.google.firebase.Firebase
 import com.google.firebase.firestore.firestore
+import com.google.firebase.storage.storage
 import com.miles.straymaps.data.stray_animal.StrayAnimal
 import com.miles.straymaps.data.stray_animal.StrayAnimalDao
 import com.miles.straymaps.misc.ComposeFileProvider
@@ -31,9 +32,13 @@ open class StrayAnimalRepositoryImplementation @Inject constructor(
     private val context: Context
 ) : StrayAnimalRepositoryInterface {
 
+    private val storage = Firebase.storage
+
+    private val storageReference = storage.reference
+
     private val cloudFirebaseDatabase = Firebase.firestore
 
-    private val TAG = "cloudFirebaseDatabase StrayAnimal upload/download status"
+    private val TAG = "Stray Animal Repository Implementation."
 
     override fun loadAllStrayAnimalReports(): Flow<List<StrayAnimal>> = strayAnimalDao.getAll()
 
@@ -55,31 +60,70 @@ open class StrayAnimalRepositoryImplementation @Inject constructor(
     override fun loadAllNotUploadedReports(): List<StrayAnimal> =
         strayAnimalDao.loadAllNotUploadedReports()
 
-    override suspend fun upsertStrayAnimal(strayAnimal: StrayAnimal) {
+    override suspend fun updateLoadState(uniqueId: String, isUploaded: Boolean) {
+        strayAnimalDao.updateUploadState(uniqueId, isUploaded)
+    }
+
+    override suspend fun insertStrayAnimalReport(strayAnimal: StrayAnimal) {
         withContext(ioDispatcher) {
-            strayAnimalDao.upsert(strayAnimal)
-            if (!strayAnimal.strayAnimalIsUploaded) {
-                val strayAnimalReportFromRoomDB = loadAllNotUploadedReports()
-                strayAnimalReportFromRoomDB.forEach {
+            strayAnimalDao.insertStrayAnimalReport(strayAnimal)
+        }
+    }
+
+    suspend fun insertStrayAnimalReportIntoRoomDBAndUploadItToCloudFirestore(strayAnimal: StrayAnimal) {
+        withContext(ioDispatcher) {
+            try {
+                // Insert the stray animal report into RoomDB
+                strayAnimalDao.insertStrayAnimalReport(strayAnimal)
+
+                // Check for reports that have not been uploaded to Firestore
+                val strayAnimalReportsFromDB = loadAllNotUploadedReports()
+
+                strayAnimalReportsFromDB.forEach { report ->
                     try {
-                        val uploadSuccess = uploadReportToCloudFirebaseDatabase(it)
-                        if (uploadSuccess) {
-                            strayAnimalDao.upsert(strayAnimal = it.copy(strayAnimalIsUploaded = true))
-                            Log.d(
-                                TAG,
-                                "Successfully changed strayAnimal RoomDB->Cloud upload state."
-                            )
+                        val photoUploaded = uploadReportPhotoToFirebaseStorage(report)
+
+                        if (photoUploaded) {
+                            val photoUrl =
+                                storageReference.child("stray_animal_images/${report.strayAnimalReportUniqueId}").downloadUrl.await()
+                                    .toString()
+
+                            val updatedStrayAnimalReport =
+                                report.copy(strayAnimalPhotoPath = photoUrl)
+
+                            val uploadSuccess =
+                                uploadReportToCloudFirebaseDatabase(updatedStrayAnimalReport)
+                            if (uploadSuccess) {
+                                // Update the report in RoomDB to mark it as uploaded to Firestore
+                                strayAnimalDao.updateUploadState(
+                                    report.strayAnimalReportUniqueId,
+                                    true
+                                )
+                                Log.d(
+                                    TAG,
+                                    "Successfully changed strayAnimal RoomDB->Cloud upload state."
+                                )
+                            } else {
+                                Log.w(TAG, "Error trying to change report upload state in RoomDB.")
+                            }
                         } else {
-                            Log.w(TAG, "Error trying to change report upload status in RoomDB.")
+                            Log.w(TAG, "Photo upload failed. Report not uploaded to Firestore.")
                         }
                     } catch (e: Exception) {
-                        Log.e(TAG, "Error trying to upload reports from RoomDB to the Cloud", e)
+                        Log.e(TAG, "Error trying to upload reports from RoomDb to the Cloud.", e)
                     }
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error inserting stray animal reports.", e)
             }
         }
     }
 
+    override suspend fun updateStrayAnimal(strayAnimal: StrayAnimal) {
+        withContext(ioDispatcher) {
+            strayAnimalDao.updateStrayAnimalReport(strayAnimal)
+        }
+    }
 
     override suspend fun deleteStrayAnimal(strayAnimal: StrayAnimal) {
         withContext(ioDispatcher) {
@@ -102,22 +146,55 @@ open class StrayAnimalRepositoryImplementation @Inject constructor(
         }
     }
 
+    private suspend fun uploadReportPhotoToFirebaseStorage(strayAnimal: StrayAnimal): Boolean {
+        return withContext(ioDispatcher) {
+            try {
+                val photoPath = strayAnimal.strayAnimalPhotoPath
 
-    //Function that processes the captured image
+                if (photoPath.isNullOrEmpty()) {
+                    Log.e(TAG, "Stray Animal photo path is null or empty.")
+                    return@withContext false
+                }
+
+                Log.d(TAG, "Attempting to upload file from path: $photoPath")
+
+                val file = File(photoPath)
+                if (!file.exists()) {
+                    Log.e(TAG, "Stray Animal photo file does not exist: $photoPath")
+                    return@withContext false
+                }
+
+                val fileUri = Uri.fromFile(file)
+                val photoReference =
+                    storageReference.child("stray_animal_images/${strayAnimal.strayAnimalReportUniqueId}")
+
+                // Uploading the file to Storage and waiting for completion
+                photoReference.putFile(fileUri).await()
+
+                Log.d(TAG, "StrayAnimal photo added to Storage.")
+                true
+            } catch (e: Exception) {
+                Log.e(TAG, "Error adding the Stray Animal photo to Storage.", e)
+                false
+            }
+        }
+    }
+
+
+    // Function that processes the captured image
     fun processCapturedImage(): Uri {
         return ComposeFileProvider.getImageUri(context)
     }
 
-    //This function saves a drawable as a PNG,
-    //I use it to save Drawable "No image available" as a PNG, and then use its path as the
-    //default path for Stray Animal reports where there is no photo provided
-    fun saveDrawableAsPNG(
-    ): String {
+    // This function saves a drawable as a PNG,
+    // I use it to save Drawable "No image available" as a PNG, and then use its path as the
+    // default path for Stray Animal reports where there is no photo provided
+    fun saveDrawableAsPNG(): String {
         return DefaultImageProvider.getDefaultImagePath(context)
     }
 
-    //Getting the image from Gallery and making modifications to it
-    //This function gets the image's meta data
+    // Getting the image from Gallery and making modifications to it
+    // This function gets the image's meta data
     fun getMetaDataOfTheImage(uri: Uri): Pair<Int, Int> {
         Log.d("getMetaDataOfTheGalleryImage", "URI: $uri")
         return BitmapFactory.Options().run {
@@ -129,7 +206,7 @@ open class StrayAnimalRepositoryImplementation @Inject constructor(
         }
     }
 
-    //This function resizes the image
+    // This function resizes the image
     fun resizeImageFromUriReturnBitmap(uri: Uri, reqWidth: Int, reqHeight: Int): Bitmap? {
         val options = BitmapFactory.Options().apply {
             inJustDecodeBounds = true
@@ -164,7 +241,7 @@ open class StrayAnimalRepositoryImplementation @Inject constructor(
         return inSampleSize
     }
 
-    //This function saves the image without resizing
+    // This function saves the image without resizing
     fun savingImageFromUriAsBitmap(uri: Uri): Bitmap? {
         val contentResolver = context.contentResolver
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -187,7 +264,7 @@ open class StrayAnimalRepositoryImplementation @Inject constructor(
         }
     }
 
-    //Function to save the resized Bitmap to a file in internal storage and get the file path
+    // Function to save the resized Bitmap to a file in internal storage and get the file path
     fun saveBitmapToFileAndReturnPath(bitmap: Bitmap): String {
         val filename = "Stray_maps_report_image_${System.currentTimeMillis()}.png"
         val file = File(context.filesDir, filename)

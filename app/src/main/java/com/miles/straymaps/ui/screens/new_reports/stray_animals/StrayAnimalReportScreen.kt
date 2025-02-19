@@ -62,10 +62,7 @@ import com.miles.straymaps.R
 import kotlinx.coroutines.launch
 
 
-const val TAG = "Photo Alert Dialog"
-
-
-//Composable for reporting stray animals
+// Composable function that shows a screen users can enter information in for reporting stray animals
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -82,9 +79,7 @@ fun ReportAStrayAnimal(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val strayReportUpsertEvent by viewModel.strayReportUpsertEventSnackbarMessage.collectAsState(
-        initial = null
-    )
+    val strayReportUpsertEvent by viewModel.reportUploadSnackbarState.collectAsState()
 
     val cameraPermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
 
@@ -96,7 +91,7 @@ fun ReportAStrayAnimal(
     var sizeOfImageShown by remember { mutableStateOf(IntSize.Zero) }
 
 
-    //Launcher for gallery
+    // Launcher for gallery
     val launcherForPickingImageFromGallery = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -145,8 +140,8 @@ fun ReportAStrayAnimal(
     }
 
 
-    //Opens AlertDialog for the user to choose whether they want to choose a photo from their device's
-    //gallery, or take a photo with their camera, while also checking for camera permission
+    // Opens AlertDialog for the user to choose whether they want to choose a photo from their device's
+    // gallery, or take a photo with their camera, while also checking for camera permission
     if (openAlertDialog.value) {
         PhotoAlertDialog(
             cameraPermissionState = cameraPermissionState,
@@ -161,20 +156,22 @@ fun ReportAStrayAnimal(
         )
     }
 
-    //Launch effect that checks if the user is logged in
+    // Launched effect that checks if the user is logged in
     LaunchedEffect(Unit) {
         viewModel.initialize(restartApp)
     }
 
-    //Launch effect that checks if the user successfully saved a report
+    // Launched effect that checks if the user successfully saved a report
     LaunchedEffect(strayReportUpsertEvent) {
-        strayReportUpsertEvent?.let { isSuccess ->
-            val message = if (isSuccess) "Report saved."
-            else "Failed to save the report."
-            snackbarHostState.showSnackbar(message)
+        if (strayReportUpsertEvent == true) {
+            snackbarHostState.showSnackbar("Report filed successfully!")
+            viewModel.clearErrorState()
+            viewModel.resetStrayAnimalReportFields(true)
+        } else if (strayReportUpsertEvent == false) {
+            snackbarHostState.showSnackbar("Error filing the report!")
+            viewModel.clearErrorState()
         }
     }
-
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
 

@@ -2,10 +2,12 @@ package com.miles.straymaps.ui.screens.welcome
 
 
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -20,9 +22,14 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.dimensionResource
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.miles.straymaps.R
+import com.miles.straymaps.ui.screens.FakeAccountService
+import com.miles.straymaps.ui.theme.AppTypography
 
 
 // This is the first screen that the user sees after opening Stray Maps app
@@ -44,7 +51,10 @@ fun WelcomeScreen(
 
     Column(
         verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier
+            .fillMaxSize()
+            .background(color = MaterialTheme.colorScheme.primary)
     ) {
         Box {
             Image(
@@ -61,11 +71,14 @@ fun WelcomeScreen(
         )
         Text(
             text = stringResource(id = R.string.welcome_sign),
-            style = MaterialTheme.typography.titleLarge
+            style = AppTypography.titleMedium,
+            fontSize = 22.sp
         )
         Text(
             text = stringResource(id = R.string.app_name),
-            style = MaterialTheme.typography.headlineLarge
+            style = AppTypography.titleLarge,
+            fontWeight = FontWeight.SemiBold,
+            fontSize = 30.sp
         )
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.padding_medium)))
         ElevatedButton(onClick = { showSignUpPage() }) {
@@ -87,3 +100,19 @@ fun WelcomeScreen(
         }
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun WelcomeScreenPreview() {
+    WelcomeScreen(
+        openAndPopUp = { _, _ -> },
+        showSignUpPage = {},
+        showSignInPage = {},
+        viewModel = FakeWelcomeScreenViewModel()
+    )
+}
+
+class FakeWelcomeScreenViewModel : StrayMapsWelcomeScreenViewModel(
+    accountService = FakeAccountService()
+)
+

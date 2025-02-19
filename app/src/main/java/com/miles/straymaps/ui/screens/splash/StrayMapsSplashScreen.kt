@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import kotlinx.coroutines.delay
 
@@ -39,3 +40,15 @@ fun SplashScreen(
         CircularProgressIndicator(color = MaterialTheme.colorScheme.onBackground)
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun SplashScreenPreview() {
+    SplashScreen(
+        openAndPopUp = {_,_ ->},
+        modifier = Modifier,
+        viewModel = FakeSplashScreenViewModel()
+    )
+}
+
+class FakeSplashScreenViewModel: StrayMapsSplashScreenViewModel()

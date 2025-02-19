@@ -18,7 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
@@ -60,6 +60,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.miles.straymaps.R
 import com.miles.straymaps.data.lost_pet.LostPet
+import com.miles.straymaps.data.toLocalDateTime
 
 enum class SortCriteria {
     TYPE,
@@ -139,6 +140,14 @@ fun LostPetExistingReportsScreen(
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = { viewModel.reloadReports() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Refresh,
+                            contentDescription = stringResource(R.string.refresh_reports)
+                        )
+                    }
                     IconButton(
                         onClick = { searchAlertDialog.value = true }
                     ) {
@@ -270,7 +279,10 @@ fun ListOfReports(
         verticalArrangement = Arrangement.spacedBy(dimensionResource(id = R.dimen.padding_medium))
     ) {
         items(items = reportList) { lostPet ->
-            LostPetFiledReportCard(lostPetReportCard = lostPet, viewModel = viewModel)
+            LostPetFiledReportCard(
+                lostPetReportCard = lostPet,
+                viewModel = viewModel
+            )
         }
     }
 }
@@ -311,7 +323,7 @@ fun LostPetFiledReportCard(
                 ) {
                     AsyncImage(
                         model =
-                        if (lostPetReportCard.lostPetPhoto == "none") {
+                        if (lostPetReportCard.lostPetPhoto == stringResource(R.string.no_image_path)) {
                             ImageRequest.Builder(LocalContext.current)
                                 .data(R.drawable.noimageavailable)
                                 .crossfade(true)
@@ -394,7 +406,7 @@ fun LostPetFiledReportCard(
                 text = "Report created: ${
                     lostPetReportCard.lostPetReportDateAndTime?.let {
                         viewModel.formatLocalDateTime(
-                            it
+                            it.toLocalDateTime()
                         )
                     }
                 }",
@@ -415,7 +427,6 @@ fun LostPetFiledReportCard(
 }
 
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchAlertDialog(
     userInput: String,

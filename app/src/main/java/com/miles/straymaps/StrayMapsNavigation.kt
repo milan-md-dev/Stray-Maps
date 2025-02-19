@@ -21,6 +21,7 @@ import com.miles.straymaps.ui.screens.existing_reports.lost_pets.LostPetExisting
 import com.miles.straymaps.ui.screens.existing_reports.stray_animals.StrayAnimalsExistingReportsScreen
 import com.miles.straymaps.ui.screens.feed_a_stray.FeedAStrayScreen
 import com.miles.straymaps.ui.screens.home.StrayMapsHomeScreen
+import com.miles.straymaps.ui.screens.nearby_clinics.StrayMapsMap
 import com.miles.straymaps.ui.screens.new_reports.lost_pets.ReportALostPet
 import com.miles.straymaps.ui.screens.new_reports.stray_animals.ReportAStrayAnimal
 import com.miles.straymaps.ui.screens.sign_in.SignInScreenWithTopAppBar
@@ -174,7 +175,9 @@ fun NavGraphBuilder.strayMapsGraph(
     }
 
     composable(route = StrayMapsScreen.LookForNearbyAnimalSheltersAndVetClinics.route) {
-
+        StrayMapsMap(
+            onBackClick = { appState.popUp() }
+        )
     }
 
     composable(route = StrayMapsScreen.DonateMoneyToHelpFeedAndHouseAnimalsWithoutAHome.route) {

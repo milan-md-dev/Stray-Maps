@@ -18,9 +18,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Sort
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.Sort
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -61,6 +60,7 @@ import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.miles.straymaps.R
 import com.miles.straymaps.data.stray_animal.StrayAnimal
+import com.miles.straymaps.data.toLocalDateTime
 
 
 enum class SortCriteria {
@@ -144,6 +144,14 @@ fun StrayAnimalsExistingReportsScreen(
                     }
                 },
                 actions = {
+                    IconButton(
+                        onClick = { viewModel.reloadReports() }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Filled.Refresh,
+                            contentDescription = stringResource(R.string.refresh_reports)
+                        )
+                    }
                     IconButton(
                         onClick = { searchAlertDialog.value = true }
                     ) {
@@ -316,7 +324,7 @@ fun StrayAnimalFiledReportCard(
                 ) {
                     AsyncImage(
                         model =
-                        if (animalReportCard.strayAnimalPhotoPath == "none") {
+                        if (animalReportCard.strayAnimalPhotoPath == stringResource(R.string.no_image_path)) {
                             ImageRequest.Builder(LocalContext.current)
                                 .data(R.drawable.noimageavailable)
                                 .crossfade(true)
@@ -395,7 +403,7 @@ fun StrayAnimalFiledReportCard(
                 text = "Report created: ${
                     animalReportCard.strayAnimalReportDateAndTime?.let {
                         viewModel.formatLocalDateTime(
-                            it
+                            it.toLocalDateTime()
                         )
                     }
                 }",
@@ -415,7 +423,6 @@ fun StrayAnimalFiledReportCard(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchAlertDialog(
     userInput: String,

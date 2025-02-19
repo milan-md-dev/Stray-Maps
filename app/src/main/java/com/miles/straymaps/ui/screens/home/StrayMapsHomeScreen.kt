@@ -42,6 +42,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
@@ -55,6 +56,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.miles.straymaps.R
+import com.miles.straymaps.ui.screens.FakeAccountService
 
 
 // Composable function representing the Home screen with navigation options
@@ -78,7 +80,6 @@ fun StrayMapsHomeScreen(
     var showDeleteAccountDialog by remember { mutableStateOf(false) }
     var showFiledReportsSelectionDialog by remember { mutableStateOf(false) }
 
-    val currentUser by viewModel.currentUser.collectAsState()
     val isCurrentUserAnonymous by viewModel.isCurrentUserAnonymous.collectAsState()
     val currentUserProfile by viewModel.currentUserProfile.collectAsState()
 
@@ -92,25 +93,25 @@ fun StrayMapsHomeScreen(
         topBar = {
             CenterAlignedTopAppBar(
                 colors = topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.primary
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = Color.Black
                 ),
                 title = {
                     Text(
-                        text = stringResource(R.string.home_screen_top_app_bar),
+                        text = stringResource(R.string.app_name),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
                 },
                 actions = {
                     IconButton(onClick = { showUserInfo = true }) {
-                        Icon(Icons.Filled.Person, "User info")
+                        Icon(Icons.Filled.Person, "User info", tint = Color.Black)
                     }
                     IconButton(onClick = { showExitAppDialog = true }) {
-                        Icon(Icons.AutoMirrored.Filled.ExitToApp, "Exit app")
+                        Icon(Icons.AutoMirrored.Filled.ExitToApp, "Exit app", tint = Color.Black)
                     }
                     IconButton(onClick = { showDeleteAccountDialog = true }) {
-                        Icon(Icons.Filled.Delete, "Delete account")
+                        Icon(Icons.Filled.Delete, "Delete account", tint = Color.Black)
                     }
                 },
                 scrollBehavior = scrollBehavior,
@@ -399,7 +400,8 @@ fun WhereToGo(
         Spacer(modifier = Modifier.height(dimensionResource(id = R.dimen.padding_small)))
         Text(
             text = stringResource(id = R.string.where_to_go),
-            style = MaterialTheme.typography.titleMedium
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center
         )
     }
 }
@@ -508,7 +510,12 @@ fun StrayMapsHomeScreenPreview() {
         onFeedAStrayButtonClicked = {},
         restartApp = {},
         onSignInClicked = {},
-        onSignUpClicked = {}
+        onSignUpClicked = {},
+        viewModel = FakeHomeScreenViewModel()
     )
 }
+
+class FakeHomeScreenViewModel : StrayMapsHomeScreenViewModel(
+    accountService = FakeAccountService()
+)
 

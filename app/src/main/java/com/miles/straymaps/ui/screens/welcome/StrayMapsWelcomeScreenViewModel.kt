@@ -7,7 +7,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 
 @HiltViewModel
-class StrayMapsWelcomeScreenViewModel @Inject constructor(
+open class StrayMapsWelcomeScreenViewModel @Inject constructor(
     private val accountService: AccountServiceInterface
 ) : StrayMapsViewModel() {
 

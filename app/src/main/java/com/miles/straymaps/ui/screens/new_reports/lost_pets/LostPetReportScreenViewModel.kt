@@ -17,7 +17,7 @@ import com.miles.straymaps.StrayMapsScreen
 import com.miles.straymaps.data.firebase.AccountServiceInterface
 import com.miles.straymaps.data.lost_pet.LostPet
 import com.miles.straymaps.data.repositories.lost_pet.LostPetRepositoryImplementation
-import com.miles.straymaps.misc.Resource
+import com.miles.straymaps.data.toIsoString
 import com.miles.straymaps.ui.screens.StrayMapsViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -28,11 +28,12 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.util.Locale
+import java.util.UUID
 import javax.inject.Inject
 
 
 @HiltViewModel
-class LostPetReportScreenViewModel @Inject constructor(
+open class LostPetReportScreenViewModel @Inject constructor(
     private val lostPetRepository: LostPetRepositoryImplementation,
     private val accountService: AccountServiceInterface
 ) : StrayMapsViewModel() {
@@ -41,6 +42,8 @@ class LostPetReportScreenViewModel @Inject constructor(
 
     private val _defaultNoImageAvailablePath = MutableStateFlow<String?>(null)
     private val defaultNoImageAvailablePath: StateFlow<String?> = _defaultNoImageAvailablePath
+
+    val reportUploadSnackbarState = MutableStateFlow<Boolean?>(null)
 
     init {
         viewModelScope.launch {
@@ -57,7 +60,9 @@ class LostPetReportScreenViewModel @Inject constructor(
         }
     }
 
-
+    // This object represents a "default state" of a Lost Pet Report,
+    // Before the user makes modifications
+    // Below are functions that the Composable calls to modify each field individually
     var lostPetReport by mutableStateOf(
         LostPet(
             null,
@@ -72,7 +77,9 @@ class LostPetReportScreenViewModel @Inject constructor(
             "",
             "",
             null,
-            false
+            false,
+            "",
+            ""
         )
     )
         private set
@@ -117,13 +124,31 @@ class LostPetReportScreenViewModel @Inject constructor(
         lostPetReport = lostPetReport.copy(lostPetAdditionalInformation = info)
     }
 
-    private fun updateLostPetReportDateAndTime(value: LocalDateTime) {
-        lostPetReport = lostPetReport.copy(lostPetReportDateAndTime = value)
+    fun clearErrorState() {
+        reportUploadSnackbarState.value = null
     }
 
-    private val _lostPetReportUpsertEventSnackbarMessage = MutableStateFlow<Boolean?>(null)
-    val lostPetReportUpsertEventSnackbarMessage: StateFlow<Boolean?> =
-        _lostPetReportUpsertEventSnackbarMessage.asStateFlow()
+    fun resetLostPetReportFields(boolean: Boolean) {
+        if (boolean) {
+            lostPetReport = lostPetReport.copy(
+                lostPetId = null,
+                lostPetPhoto = defaultNoImageAvailablePath.value,
+                lostPetType = "",
+                lostPetName = "",
+                lostPetColour = "",
+                lostPetSex = "",
+                lostPetAppearanceDescription = "",
+                lostPetLastKnownLocation = "",
+                lostPetMicrochipId = "",
+                lostPetContactInformation = "",
+                lostPetAdditionalInformation = "",
+                lostPetReportDateAndTime = null,
+                lostPetIsUploaded = false,
+                lostPetReportMadeByUserId = "",
+                lostPetReportUniqueId = ""
+            )
+        }
+    }
 
     private var completeLostPetReport by mutableStateOf(
         LostPet(
@@ -139,7 +164,9 @@ class LostPetReportScreenViewModel @Inject constructor(
             "",
             "",
             null,
-            false
+            false,
+            "",
+            ""
         )
     )
 
@@ -147,31 +174,26 @@ class LostPetReportScreenViewModel @Inject constructor(
     @RequiresApi(Build.VERSION_CODES.O)
     fun saveLostPetReport() {
         viewModelScope.launch {
-            val result = try {
-                //Adding the local date and time when the repost is being created
-                val now = LocalDateTime.now()
-                updateLostPetReportDateAndTime(now)
-
+            try {
                 completeLostPetReport = lostPetReport.copy(
-                    lostPetMicrochipId = lostPetReport.lostPetMicrochipId.uppercase(Locale.getDefault())
+                    // Adding the local date and time when the repost is being created
+                    lostPetReportDateAndTime = LocalDateTime.now().toIsoString(),
+                    // Modifying microchip ID to be uppercase
+                    lostPetMicrochipId = lostPetReport.lostPetMicrochipId.uppercase(Locale.getDefault()),
+                    // Adding UniqueID so that the report can be matched to its photo
+                    lostPetReportUniqueId = UUID.randomUUID().toString(),
+                    // Adding the User ID to the report so that users can modify their reports
+                    lostPetReportMadeByUserId = accountService.currentUserId
                 )
 
-                lostPetRepository.upsertLostPet(completeLostPetReport)
-                Resource.Success("Report filed successfully.")
+                // Inserting into RoomDB and CloudFirebase
+                lostPetRepository.insertLostPetReportIntoRoomDBAndUploadItToCloudFirestore(
+                    completeLostPetReport
+                )
+                reportUploadSnackbarState.value = true
             } catch (e: Exception) {
                 Log.e(TAG, "Error saving lost pet report", e)
-                Resource.Error("Error saving Lost Pet report.")
-            }
-            when (result) {
-                is Resource.Success -> {
-                    _lostPetReportUpsertEventSnackbarMessage.value = true
-                }
-
-                is Resource.Error -> {
-                    _lostPetReportUpsertEventSnackbarMessage.value = false
-                }
-
-                else -> {}
+                reportUploadSnackbarState.value = false
             }
         }
     }
@@ -227,7 +249,7 @@ class LostPetReportScreenViewModel @Inject constructor(
         }
     }
 
-    //This part provides the initial URI for camera image capture
+    // This part provides the initial URI for camera image capture
     private val _capturedImagePath = MutableStateFlow<Uri?>(null)
     val capturedImagePath: StateFlow<Uri?> = _capturedImagePath.asStateFlow()
 

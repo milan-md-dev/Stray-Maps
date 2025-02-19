@@ -2,8 +2,10 @@ package com.miles.straymaps.data.lost_pet
 
 import androidx.room.Dao
 import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Upsert
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 
@@ -39,9 +41,15 @@ interface LostPetDao {
     @Query("SELECT * FROM lost_pets WHERE lost_pet_report_upload_state = 0")
     fun loadAllNotUploadedReports(): List<LostPet>
 
-    @Upsert
-    suspend fun upsertLostPet(lostPet: LostPet)
+    @Query("UPDATE lost_pets SET lost_pet_report_upload_state = :isUploaded WHERE lost_pet_report_unique_id = :uniqueId")
+    suspend fun updateUploadState(uniqueId: String, isUploaded: Boolean)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertLostPetReport(lostPet: LostPet)
+
+    @Update(onConflict = OnConflictStrategy.ABORT)
+    suspend fun updateLostPetReport(lostPet: LostPet)
 
     @Delete
-    suspend fun deleteLostPet(lostPet: LostPet)
+    suspend fun deleteLostPetReport(lostPet: LostPet)
 }

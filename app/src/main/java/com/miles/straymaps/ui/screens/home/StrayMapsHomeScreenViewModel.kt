@@ -11,12 +11,9 @@ import kotlinx.coroutines.flow.asStateFlow
 import javax.inject.Inject
 
 @HiltViewModel
-class StrayMapsHomeScreenViewModel @Inject constructor(
+open class StrayMapsHomeScreenViewModel @Inject constructor(
     private val accountService: AccountServiceInterface
 ) : StrayMapsViewModel() {
-
-    private val _currentUser = MutableStateFlow<User?>(null)
-    val currentUser: StateFlow<User?> = _currentUser.asStateFlow()
 
     private val _isCurrentUserAnonymous = MutableStateFlow<Boolean?>(null)
     val isCurrentUserAnonymous: StateFlow<Boolean?> = _isCurrentUserAnonymous.asStateFlow()
@@ -29,7 +26,6 @@ class StrayMapsHomeScreenViewModel @Inject constructor(
             accountService.currentUser.collect { user ->
                 if (user == null) restartApp(StrayMapsScreen.Welcome.route)
                 else {
-                    _currentUser.value = user
                     _isCurrentUserAnonymous.value = accountService.isUserAnonymous()
                     getCurrentUserProfile()
                 }
@@ -37,7 +33,7 @@ class StrayMapsHomeScreenViewModel @Inject constructor(
         }
     }
 
-    fun getCurrentUserProfile() {
+    private fun getCurrentUserProfile() {
         launchCatching {
             _currentUserProfile.value = accountService.getUserProfile()
         }

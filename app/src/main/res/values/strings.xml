@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">StrayMaps</string>
+    <string name="app_name">Stray Maps</string>
     <string name="welcome_sign">Welcome to</string>
     <string name="initial_photo_description">A small brown dog sleeping curled up on what seems to be playground sand</string>
 
@@ -71,7 +71,7 @@
 
     // File a lost pet report
     <string name="required_fields_pet">Asterisk(*) fields are required, the rest are optional.</string>
-    <string name="file_a_lost_pet_report_top_app_bar_text">File a stray animal report</string>
+    <string name="file_a_lost_pet_report_top_app_bar_text">File a lost pet report</string>
     <string name="no_pet_image_available">No image available</string>
     <string name="please_upload_a_pet_photo">Please upload a photo if possible</string>
     <string name="pet_name">Please enter pet name</string>
@@ -84,14 +84,17 @@
 
     // Filed reports screen
     <string name="filed_reports_screen_top_app_bar">Filed reports</string>
+    <string name="refresh_reports">Refresh reports.</string>
     <string name="arrow_back">Go back to previous screen</string>
     <string name="search_icon">Search for a report with specific microchip ID</string>
     <string name="sort_by">Sort by</string>
     <string name="microchip_id_text_field">Please enter the microchip id:</string>
     <string name="empty_list">There are currently no filed reports.</string>
     <string name="expanded_image">Expanded photo of the reported animal.</string>
+    <string name="no_image_path">/data/user/0/com.example.straymaps/files/no_image_available.png</string>
 
     // Maps
+    <string name="map">Map</string>
     <string name="location_permissions_granted">Thanks for letting me access your location.</string>
     <string name="coarse_location_only">Thanks for letting me access your approximate location
         but the results would be better if you allowed me to access your exact location.
@@ -100,7 +103,7 @@
         in this application, please grant us fine location, thank you.
         </string>
     <string name="feature_requires_location">This feature requires location permission.</string>
-    <string name="allow_precise_location">Allow precise location.</string>
+    <string name="allow_location">Grant location permission.</string>
     <string name="request_permissions">Request permissions.</string>
 
     // Misc

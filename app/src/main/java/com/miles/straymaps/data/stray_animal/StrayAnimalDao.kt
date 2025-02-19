@@ -2,8 +2,10 @@ package com.miles.straymaps.data.stray_animal
 
 import androidx.room.Dao
 import androidx.room.Delete
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
 import androidx.room.Query
-import androidx.room.Upsert
+import androidx.room.Update
 import kotlinx.coroutines.flow.Flow
 
 
@@ -34,8 +36,14 @@ interface StrayAnimalDao {
     @Query("SELECT * FROM stray_animals WHERE stray_animal_report_upload_state = 0")
     fun loadAllNotUploadedReports(): List<StrayAnimal>
 
-    @Upsert
-    suspend fun upsert(strayAnimal: StrayAnimal)
+    @Query("UPDATE stray_animals SET stray_animal_report_upload_state = :isUploaded WHERE stray_animal_report_unique_id = :uniqueId")
+    suspend fun updateUploadState(uniqueId: String, isUploaded: Boolean)
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun insertStrayAnimalReport(strayAnimal: StrayAnimal)
+
+    @Update(onConflict = OnConflictStrategy.ABORT)
+    suspend fun updateStrayAnimalReport(strayAnimal: StrayAnimal)
 
     @Delete
     suspend fun delete(strayAnimal: StrayAnimal)

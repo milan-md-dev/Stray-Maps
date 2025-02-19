@@ -17,7 +17,7 @@ import com.miles.straymaps.StrayMapsScreen
 import com.miles.straymaps.data.firebase.AccountServiceInterface
 import com.miles.straymaps.data.repositories.stray_animal.StrayAnimalRepositoryImplementation
 import com.miles.straymaps.data.stray_animal.StrayAnimal
-import com.miles.straymaps.misc.Resource
+import com.miles.straymaps.data.toIsoString
 import com.miles.straymaps.ui.screens.StrayMapsViewModel
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
@@ -28,6 +28,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import java.util.Locale
+import java.util.UUID
 import javax.inject.Inject
 
 
@@ -40,8 +41,9 @@ class StrayAnimalReportScreenViewModel @Inject constructor(
     private val TAG = "StrayAnimalReportScreenViewModel"
 
     private val _defaultNoImageAvailablePath = MutableStateFlow<String?>(null)
-    private val defaultNoImageAvailablePath: StateFlow<String?> =
-        _defaultNoImageAvailablePath.asStateFlow()
+    private val defaultNoImageAvailablePath: StateFlow<String?> = _defaultNoImageAvailablePath
+
+    val reportUploadSnackbarState = MutableStateFlow<Boolean?>(null)
 
     init {
         viewModelScope.launch {
@@ -58,9 +60,9 @@ class StrayAnimalReportScreenViewModel @Inject constructor(
         }
     }
 
-    //This object represents a "default state" of a Stray Animal Report,
-    //Before the user makes modifications
-    //Below are functions that the Screen calls to modify each field individually
+    // This object represents a "default state" of a Stray Animal Report,
+    // Before the user makes modifications
+    // Below are functions that the Composable calls to modify each field individually
     var strayAnimalReport by mutableStateOf(
         StrayAnimal(
             null,
@@ -74,7 +76,9 @@ class StrayAnimalReportScreenViewModel @Inject constructor(
             "",
             "",
             null,
-            false
+            false,
+            "",
+            ""
         )
     )
         private set
@@ -115,14 +119,30 @@ class StrayAnimalReportScreenViewModel @Inject constructor(
         strayAnimalReport = strayAnimalReport.copy(strayAnimalAdditionalInformation = info)
     }
 
-    private fun updateStrayAnimalReportDateAndTime(value: LocalDateTime) {
-        strayAnimalReport = strayAnimalReport.copy(strayAnimalReportDateAndTime = value)
+    fun clearErrorState() {
+        reportUploadSnackbarState.value = null
     }
 
-
-    private val _strayReportUpsertEventSnackbarMessage = MutableStateFlow<Boolean?>(null)
-    val strayReportUpsertEventSnackbarMessage: StateFlow<Boolean?> =
-        _strayReportUpsertEventSnackbarMessage.asStateFlow()
+    fun resetStrayAnimalReportFields(boolean: Boolean) {
+        if (boolean) {
+            strayAnimalReport = strayAnimalReport.copy(
+                strayAnimalId = null,
+                strayAnimalPhotoPath = defaultNoImageAvailablePath.value,
+                strayAnimalType = "",
+                strayAnimalColour = "",
+                strayAnimalSex = "",
+                strayAnimalAppearanceDescription = "",
+                strayAnimalLocationDescription = "",
+                strayAnimalMicrochipID = "",
+                strayAnimalContactInformation = "",
+                strayAnimalAdditionalInformation = "",
+                strayAnimalReportDateAndTime = null,
+                strayAnimalIsUploaded = false,
+                strayAnimalReportMadeByUserId = "",
+                strayAnimalReportUniqueId = ""
+            )
+        }
+    }
 
     private var completeStrayAnimalReport by mutableStateOf(
         StrayAnimal(
@@ -137,40 +157,37 @@ class StrayAnimalReportScreenViewModel @Inject constructor(
             "",
             "",
             null,
-            false
+            false,
+            "",
+            ""
         )
     )
 
     @RequiresApi(Build.VERSION_CODES.O)
     fun saveStrayAnimalReport() {
         viewModelScope.launch {
-            val result = try {
-                //Adding the local date and time when the report is being made
-                val now = LocalDateTime.now()
-                updateStrayAnimalReportDateAndTime(now)
-
-                completeStrayAnimalReport = strayAnimalReport.copy(
+            try {
+                completeStrayAnimalReport = completeStrayAnimalReport.copy(
+                    // Adding the local date and time when the repost is being created
+                    strayAnimalReportDateAndTime = LocalDateTime.now().toIsoString(),
+                    // Modifying microchip ID to be uppercase
                     strayAnimalMicrochipID = strayAnimalReport.strayAnimalMicrochipID?.uppercase(
                         Locale.getDefault()
-                    )
+                    ),
+                    // Adding UniqueID so that the report can be matched to its photo
+                    strayAnimalReportUniqueId = UUID.randomUUID().toString(),
+                    // Adding the User ID to the report so that users can modify their reports
+                    strayAnimalReportMadeByUserId = accountService.currentUserId
                 )
 
-                strayAnimalRepository.upsertStrayAnimal(completeStrayAnimalReport)
-                Resource.Success("Report filed successfully.")
+                // Inserting into RoomDB and CloudFirebase
+                strayAnimalRepository.insertStrayAnimalReportIntoRoomDBAndUploadItToCloudFirestore(
+                    completeStrayAnimalReport
+                )
+                reportUploadSnackbarState.value = true
             } catch (e: Exception) {
                 Log.e(TAG, "Error saving stray animal report", e)
-                Resource.Error("Error saving Stray Animal report")
-            }
-            when (result) {
-                is Resource.Success -> {
-                    _strayReportUpsertEventSnackbarMessage.value = true
-                }
-
-                is Resource.Error -> {
-                    _strayReportUpsertEventSnackbarMessage.value = false
-                }
-
-                else -> {}
+                reportUploadSnackbarState.value = false
             }
         }
     }
@@ -226,7 +243,7 @@ class StrayAnimalReportScreenViewModel @Inject constructor(
         }
     }
 
-    //This part provides the initial URI for camera image capture
+    // This part provides the initial URI for camera image capture
     private val _capturedImagePath = MutableStateFlow<Uri?>(null)
     val capturedImagePath: StateFlow<Uri?> = _capturedImagePath.asStateFlow()
 

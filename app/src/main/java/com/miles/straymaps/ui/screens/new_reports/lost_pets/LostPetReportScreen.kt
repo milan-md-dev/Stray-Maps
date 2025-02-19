@@ -31,6 +31,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -62,7 +63,7 @@ import com.miles.straymaps.R
 import kotlinx.coroutines.launch
 
 
-//Composable for reporting lost pets
+// Composable function that shows a screen users can enter information in for reporting lost pets
 @RequiresApi(Build.VERSION_CODES.O)
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalPermissionsApi::class)
 @Composable
@@ -79,9 +80,7 @@ fun ReportALostPet(
 
     val snackbarHostState = remember { SnackbarHostState() }
 
-    val lostPetUpsertReportEvent by viewModel.lostPetReportUpsertEventSnackbarMessage.collectAsState(
-        initial = null
-    )
+    val lostPetReportUploadEvent by viewModel.reportUploadSnackbarState.collectAsState()
 
     val cameraPermissionState = rememberPermissionState(Manifest.permission.CAMERA)
 
@@ -91,7 +90,7 @@ fun ReportALostPet(
 
     var sizeOfImageShown by remember { mutableStateOf(IntSize.Zero) }
 
-    //Launcher for gallery
+    // Launcher for gallery
     val launcherForPickingImageFromGallery = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri ->
@@ -107,7 +106,7 @@ fun ReportALostPet(
 
     var cameraLaunchedSuccessfully by remember { mutableStateOf(false) }
 
-    //Launcher for camera
+    // Launcher for camera
     val takePictureLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success ->
@@ -137,8 +136,8 @@ fun ReportALostPet(
         }
     }
 
-    //Opens AlertDialog for the user to choose whether they want to choose a photo from their device's
-    //gallery, or take a photo with their camera, while also checking for camera permission
+    // Opens AlertDialog for the user to choose whether they want to choose a photo from their device's
+    // gallery, or take a photo with their camera, while also checking for camera permission
     if (openAlertDialog.value) {
         PhotoAlertDialog(
             cameraPermissionState = cameraPermissionState,
@@ -153,23 +152,26 @@ fun ReportALostPet(
         )
     }
 
+    // Launched effect that checks if the user is logged in
     LaunchedEffect(Unit) {
         viewModel.initialize(restartApp)
     }
 
-    //Launch effect that checks if the user successfully saved a report
-    LaunchedEffect(lostPetUpsertReportEvent) {
-        lostPetUpsertReportEvent?.let { isSuccess ->
-            val message = if (isSuccess) "Report saved."
-            else "Failed to save the report."
-            snackbarHostState.showSnackbar(message)
+    // Launched effect that checks if the user successfully saved a report
+    LaunchedEffect(lostPetReportUploadEvent) {
+        if (lostPetReportUploadEvent == true) {
+            snackbarHostState.showSnackbar("Report filed successfully!")
+            viewModel.clearErrorState()
+            viewModel.resetLostPetReportFields(true)
+        } else if (lostPetReportUploadEvent == false) {
+            snackbarHostState.showSnackbar("Error filing the report!")
+            viewModel.clearErrorState()
         }
     }
 
-
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
-
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
         topBar = {
             CenterAlignedTopAppBar(
                 colors = topAppBarColors(
@@ -413,7 +415,7 @@ fun ReportALostPet(
     }
 }
 
-//Composable function that displays an Alert Dialog where the user can pick the source of the photo
+// Composable function that displays an Alert Dialog where the user can pick the source of the photo
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
 fun PhotoAlertDialog(

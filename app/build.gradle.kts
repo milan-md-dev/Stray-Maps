@@ -50,6 +50,7 @@ dependencies {
     // Dagger Hilt
     implementation (libs.dagger.hilt.android)
     implementation (libs.androidx.hilt.navigation.compose)
+    implementation(libs.androidx.ui.text.google.fonts)
     kapt (libs.hilt.compiler.v255)
 
     // Firebase
@@ -58,6 +59,8 @@ dependencies {
     implementation(libs.firebase.auth)
     implementation(libs.firebase.storage)
     implementation(libs.firebase.firestore)
+    implementation (libs.firebaseui.firebase.ui.storage)
+
 
     // Room
     implementation(libs.androidx.room.runtime)
@@ -71,6 +74,17 @@ dependencies {
     // Accompanist
     implementation(libs.accompanist.permissions)
 
+    // Mapbox
+    implementation(libs.maps.android)
+    implementation(libs.maps.compose)
+    implementation(libs.autofill.v280)
+    implementation("com.mapbox.search:discover:2.8.0")
+    implementation("com.mapbox.search:place-autocomplete:2.8.0")
+    implementation("com.mapbox.search:offline:2.8.0")
+    implementation("com.mapbox.search:mapbox-search-android:2.8.0")
+    implementation("com.mapbox.search:mapbox-search-android-ui:2.8.0")
+
+    implementation(libs.androidx.ui.text.google.fonts)
     implementation(libs.material3)
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.androidx.core.ktx)

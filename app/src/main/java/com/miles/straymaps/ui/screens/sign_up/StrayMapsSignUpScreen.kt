@@ -35,8 +35,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.miles.straymaps.R
+import com.miles.straymaps.ui.screens.FakeAccountService
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -163,3 +165,17 @@ fun SignUpScreen(
         }
     }
 }
+
+@Preview(showBackground = true)
+@Composable
+fun SignUpScreenPreview(){
+    SignUpScreenWithTopAppBar(
+        onBackClick = {},
+        openAndPopUp = {_,_ ->},
+        viewModel = FakeSignUpScreenViewModel()
+    )
+}
+
+class FakeSignUpScreenViewModel: StrayMapsSignUpScreenViewModel(
+    accountService = FakeAccountService()
+)

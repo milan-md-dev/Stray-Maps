@@ -20,3 +20,10 @@ class Converters {
         return LocalDateTime.parse(value, DateTimeFormatter.ISO_LOCAL_DATE_TIME)
     }
 }
+
+// Converts LocalDateTime to String
+fun LocalDateTime.toIsoString(): String = this.toString()
+
+// Converts String to LocalDateTime
+@RequiresApi(Build.VERSION_CODES.O)
+fun String.toLocalDateTime(): LocalDateTime = LocalDateTime.parse(this)

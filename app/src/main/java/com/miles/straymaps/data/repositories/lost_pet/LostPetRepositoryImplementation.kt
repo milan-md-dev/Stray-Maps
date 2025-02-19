@@ -8,12 +8,13 @@ import android.graphics.ImageDecoder
 import android.net.Uri
 import android.os.Build
 import android.util.Log
+import com.google.firebase.Firebase
+import com.google.firebase.firestore.firestore
+import com.google.firebase.storage.storage
 import com.miles.straymaps.data.lost_pet.LostPet
 import com.miles.straymaps.data.lost_pet.LostPetDao
 import com.miles.straymaps.misc.ComposeFileProvider
 import com.miles.straymaps.misc.DefaultImageProvider
-import com.google.firebase.Firebase
-import com.google.firebase.firestore.firestore
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.tasks.await
@@ -25,15 +26,19 @@ import javax.inject.Singleton
 
 
 @Singleton
-class LostPetRepositoryImplementation @Inject constructor(
+open class LostPetRepositoryImplementation @Inject constructor(
     private val lostPetDao: LostPetDao,
     private val ioDispatcher: CoroutineDispatcher,
     private val context: Context
 ) : LostPetRepositoryInterface {
 
+    private val storage = Firebase.storage
+
+    private val storageReference = storage.reference
+
     private val cloudFirebaseDatabase = Firebase.firestore
 
-    private val TAG = "cloudFirebaseDatabase LostPet upload/download status"
+    private val TAG = "Lost Pet Repository Implementation."
 
     override fun loadAllLostPetReports(): Flow<List<LostPet>> = lostPetDao.getAll()
 
@@ -56,31 +61,72 @@ class LostPetRepositoryImplementation @Inject constructor(
 
     override fun loadAllNotUploadedReports(): List<LostPet> = lostPetDao.loadAllNotUploadedReports()
 
-    override suspend fun upsertLostPet(lostPet: LostPet) {
+    override suspend fun updateUploadState(uniqueId: String, isUploaded: Boolean) {
+        lostPetDao.updateUploadState(uniqueId, isUploaded)
+    }
+
+    override suspend fun insertLostPetReport(lostPet: LostPet) {
         withContext(ioDispatcher) {
-            lostPetDao.upsertLostPet(lostPet)
-            if (!lostPet.lostPetIsUploaded) {
-                val lostPetReportFromRoomDB = loadAllNotUploadedReports()
-                lostPetReportFromRoomDB.forEach {
+            lostPetDao.insertLostPetReport(lostPet)
+        }
+    }
+
+    suspend fun insertLostPetReportIntoRoomDBAndUploadItToCloudFirestore(lostPet: LostPet) {
+        withContext(ioDispatcher) {
+            try {
+                // Insert the lost pet report into RoomDB
+                lostPetDao.insertLostPetReport(lostPet)
+
+                // Check for reports that have not been uploaded to Firestore
+                val lostPetReportsFromRoomDB = loadAllNotUploadedReports()
+
+                lostPetReportsFromRoomDB.forEach { report ->
                     try {
-                        val uploadSuccess = uploadReportToCloudFirebaseDatabase(it)
-                        if (uploadSuccess) {
-                            lostPetDao.upsertLostPet(lostPet = it.copy(lostPetIsUploaded = true))
-                            Log.d(TAG, "Successfully changed lostPet RoomDB->Cloud upload state.")
+                        val photoUploaded = uploadReportPhotoToFirebaseStorage(report)
+
+                        if (photoUploaded) {
+                            val photoUrl =
+                                storageReference.child("lost_pet_images/${report.lostPetReportUniqueId}").downloadUrl.await()
+                                    .toString()
+
+                            val updatedLostPetReport = report.copy(lostPetPhoto = photoUrl)
+
+                            val uploadSuccess =
+                                uploadReportToCloudFirebaseDatabase(updatedLostPetReport)
+                            if (uploadSuccess) {
+                                // Update the report in RoomDB to mark it as uploaded to Firestore
+                                lostPetDao.updateUploadState(report.lostPetReportUniqueId, true)
+                                Log.d(
+                                    TAG,
+                                    "Successfully changed lostPet RoomDB->Cloud upload state."
+                                )
+                            } else {
+                                Log.w(TAG, "Error trying to change report upload status in RoomDB.")
+                            }
                         } else {
-                            Log.w(TAG, "Error trying to change report upload status in RoomDB.")
+                            Log.w(TAG, "Photo upload failed. Report not uploaded to Firestore.")
                         }
+
                     } catch (e: Exception) {
                         Log.e(TAG, "Error trying to upload reports from RoomDB to the Cloud.", e)
                     }
                 }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error inserting lost pet reports.", e)
             }
         }
     }
 
-    override suspend fun deleteLostPet(lostPet: LostPet) {
+
+    override suspend fun updateLostPetReport(lostPet: LostPet) {
         withContext(ioDispatcher) {
-            lostPetDao.deleteLostPet(lostPet)
+            lostPetDao.updateLostPetReport(lostPet)
+        }
+    }
+
+    override suspend fun deleteLostPetReport(lostPet: LostPet) {
+        withContext(ioDispatcher) {
+            lostPetDao.deleteLostPetReport(lostPet)
         }
     }
 
@@ -98,20 +144,52 @@ class LostPetRepositoryImplementation @Inject constructor(
         }
     }
 
-    //Function that processes the captured image
+    private suspend fun uploadReportPhotoToFirebaseStorage(lostPet: LostPet): Boolean {
+        return withContext(ioDispatcher) {
+            try {
+                val photoPath = lostPet.lostPetPhoto
+
+                if (photoPath.isNullOrEmpty()) {
+                    Log.e(TAG, "Lost Pet photo path is null or empty.")
+                    return@withContext false
+                }
+
+                val file = File(photoPath)
+                if (!file.exists()) {
+                    Log.e(TAG, "Lost Pet photo file does not exist: $photoPath")
+                    return@withContext false
+                }
+
+                val fileUri = Uri.fromFile(file)
+                val photoReference =
+                    storageReference.child("lost_pet_images/${lostPet.lostPetReportUniqueId}")
+
+                // Uploading the file to Storage and waiting for completion
+                photoReference.putFile(fileUri).await()
+
+                Log.d(TAG, "LostPet photo added to Storage.")
+                true
+            } catch (e: Exception) {
+                Log.e(TAG, "Error adding the Lost Pet photo to Storage.", e)
+                false
+            }
+        }
+    }
+
+    // Function that processes the captured image
     fun processCapturedImage(): Uri {
         return ComposeFileProvider.getImageUri(context)
     }
 
-    //This function saves a drawable as a PNG,
-    //I use it to save Drawable "No image available" as a PNG, and then use its path as the
-    //default path for Stray Animal reports where there is no photo provided
+    // This function saves a drawable as a PNG,
+    // I use it to save Drawable "No image available" as a PNG, and then use its path as the
+    // default path for Lost Pet reports where there is no photo provided
     fun saveDrawableAsPNG(): String {
         return DefaultImageProvider.getDefaultImagePath(context)
     }
 
-    //Getting the image from Gallery and making modifications to it
-    //This function takes the image's meta data
+    // Getting the image from Gallery and making modifications to it
+    // This function takes the image's meta data
     fun getMetaDataOfTheImage(uri: Uri): Pair<Int, Int> {
         Log.d("getMetaDataOfTheGalleryImage", "URI: $uri")
         return BitmapFactory.Options().run {
@@ -123,7 +201,7 @@ class LostPetRepositoryImplementation @Inject constructor(
         }
     }
 
-    //This function resizes the image
+    // This function resizes the image
     fun resizeImageFromUriReturnBitmap(uri: Uri, reqWidth: Int, reqHeight: Int): Bitmap? {
         val options = BitmapFactory.Options().apply {
             inJustDecodeBounds = true
@@ -158,7 +236,7 @@ class LostPetRepositoryImplementation @Inject constructor(
         return inSampleSize
     }
 
-    //This function saves the image without resizing
+    // This function saves the image without resizing
     fun savingImageFromUriAsBitmap(uri: Uri): Bitmap? {
         val contentResolver = context.contentResolver
         return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
@@ -181,7 +259,7 @@ class LostPetRepositoryImplementation @Inject constructor(
         }
     }
 
-    //Function to save the resized Bitmap to a file in internal storage and get the file path
+    // Function to save the resized Bitmap to a file in internal storage and get the file path
     fun saveBitmapToFileAndReturnPath(bitmap: Bitmap): String {
         val filename = "Stray_maps_report_image_${System.currentTimeMillis()}.png"
         val file = File(context.filesDir, filename)
